@@ -9,6 +9,10 @@ import sqlite3
 from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
 from voicepeak_wrapper.voicepeak import Voicepeak, Narrator
+import sys
+
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 app = FastAPI()
 
