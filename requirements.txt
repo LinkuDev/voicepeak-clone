@@ -3,3 +3,6 @@ uvicorn
 jinja2
 pytest
 pytest-asyncio
+starlette
+sqlite3
+python-multipart

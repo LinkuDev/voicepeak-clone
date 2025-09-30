@@ -5,6 +5,9 @@ from fastapi.templating import Jinja2Templates
 import shutil
 import os
 import asyncio
+import sqlite3
+from datetime import datetime
+from starlette.middleware.sessions import SessionMiddleware
 from voicepeak_wrapper.voicepeak import Voicepeak, Narrator
 
 app = FastAPI()
@@ -16,34 +19,78 @@ OUTPUT_BASE = os.path.join(BASE_DIR, "output_web")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
+app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
+
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+DB_PATH = os.path.join(BASE_DIR, "users.db")
+
+VOICE_CHOICES = [
+    "Japanese Female Child",
+    "Japanese Male 3",
+    "Japanese Male 2",
+    "Japanese Male 1",
+    "Japanese Female 3",
+    "Japanese Female 2",
+    "Japanese Female 1"
+]
+
 # Helper: get narrator/emotion list
 async def get_narrators():
     client = Voicepeak()
     return await client.get_narrator_list()
 
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    narrators = await get_narrators()
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "narrators": narrators,
-        "output_base": OUTPUT_BASE
-    })
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login", response_class=HTMLResponse)
+async def login(request: Request, username: str = Form(...)):
+    username = username.strip()
+    if not username:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Vui lòng nhập tên người dùng."})
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT username FROM users WHERE username=?", (username,))
+    if not c.fetchone():
+        c.execute("INSERT INTO users (username) VALUES (?)", (username,))
+        conn.commit()
+    conn.close()
+    request.session["username"] = username
+    return RedirectResponse("/voice", status_code=303)
+
+@app.get("/voice", response_class=HTMLResponse)
+async def voice_page(request: Request):
+    username = request.session.get("username")
+    if not username:
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse("voice.html", {"request": request, "username": username, "voices": VOICE_CHOICES})
 
 @app.post("/generate", response_class=HTMLResponse)
 async def generate(
     request: Request,
-    narrator_name: str = Form(...),
-    emotion: str = Form(...),
-    output_folder: str = Form(...),
+    voice: str = Form(...),
     text_content: str = Form(""),
     text_file: UploadFile = File(None)
 ):
-    # Tạo thư mục lưu nếu chưa có
-    output_path = os.path.join(OUTPUT_BASE, output_folder)
+    username = request.session.get("username")
+    if not username:
+        return RedirectResponse("/", status_code=303)
+    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = os.path.join(STATIC_DIR, username, now_str)
     os.makedirs(output_path, exist_ok=True)
-
-    # Lấy nội dung text
     if text_file:
         file_path = os.path.join(output_path, text_file.filename)
         with open(file_path, "wb") as f:
@@ -52,13 +99,7 @@ async def generate(
             lines = [line.strip() for line in f if line.strip()]
     else:
         lines = [line.strip() for line in text_content.splitlines() if line.strip()]
-
-    # Chuẩn bị client, narrator, emotion
     client = Voicepeak()
-    narrator = narrator_name
-    emotions = {emotion: 100} if emotion else None
-
-    # Tạo file tổng hợp
     output_txt_path = os.path.join(output_path, "voice_lines.txt")
     with open(output_txt_path, "w", encoding="utf-8") as txt_out:
         for idx, line in enumerate(lines):
@@ -67,10 +108,11 @@ async def generate(
             txt_out.write(f"{idx}: {line}\n")
             with open(txt_path, "w", encoding="utf-8") as single_txt:
                 single_txt.write(line)
-            await client.say_text(line, output_path=wav_path, narrator=narrator, emotions=emotions)
-
+            await client.say_text(line, output_path=wav_path, narrator=voice)
     return templates.TemplateResponse("result.html", {
         "request": request,
         "output_path": output_path,
-        "lines": lines
+        "lines": lines,
+        "username": username,
+        "voice": voice
     })

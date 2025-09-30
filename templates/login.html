@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập Voicepeak Web</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; }
+        .submit-btn { padding: 10px 20px; font-size: 16px; }
+        .error { color: red; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Đăng nhập</h1>
+    <form method="post" action="/login">
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <div class="form-group">
+            <label for="username">Tên người dùng (duy nhất):</label>
+            <input type="text" name="username" id="username" required>
+        </div>
+        <button type="submit" class="submit-btn">Đăng nhập</button>
+    </form>
+</body>
+</html>
