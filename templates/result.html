@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kết quả Voicepeak</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .result { margin-top: 30px; }
+        ul { padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Kết quả đã tạo</h1>
+    <div class="result">
+        <p>Thư mục lưu: <b>{{ output_path }}</b></p>
+        <p>Số dòng đã xử lý: <b>{{ lines|length }}</b></p>
+        <ul>
+            {% for idx, line in enumerate(lines) %}
+            <li>voice_{{ idx }}.wav & text_{{ '%02d' % idx }}.txt: {{ line }}</li>
+            {% endfor %}
+        </ul>
+        <p><a href="/">Quay lại trang chủ</a></p>
+    </div>
+</body>
+</html>

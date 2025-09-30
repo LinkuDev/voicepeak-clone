@@ -96,3 +96,25 @@ async def test_say_testfile():
     text_file = os.path.join(TEST_DIRECTORY, "sample.txt")
 
     await client.say_textfile(text_file, output_path=os.path.join(OUTPUT_PATH, "say_text.wav"))
+
+
+@pytest.mark.asyncio
+async def test_split_text_and_generate_voice():
+    import voicepeak_wrapper
+
+    client = voicepeak_wrapper.Voicepeak()
+    text_file = os.path.join(TEST_DIRECTORY, "sample.txt")
+    with open(text_file, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    output_txt_path = os.path.join(OUTPUT_PATH, "voice_lines.txt")
+    with open(output_txt_path, "w", encoding="utf-8") as txt_out:
+        for idx, line in enumerate(lines):
+            wav_path = os.path.join(OUTPUT_PATH, f"voice_{idx}.wav")
+            txt_out.write(f"{idx}: {line}\n")
+            # Tạo file txt cho từng dòng
+            single_txt_path = os.path.join(OUTPUT_PATH, f"text_{idx:02d}.txt")
+            with open(single_txt_path, "w", encoding="utf-8") as single_txt:
+                single_txt.write(line)
+            # Tạo file wav cho từng dòng
+            await client.say_text(line, output_path=wav_path)

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voicepeak Web Wrapper</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 8px; }
+        .submit-btn { padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Voicepeak Web Wrapper</h1>
+    <form method="post" action="/generate" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="narrator_name">Chọn giọng đọc (narrator):</label>
+            <select name="narrator_name" id="narrator_name" required>
+                {% for narrator in narrators %}
+                <option value="{{ narrator.name }}">{{ narrator.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="emotion">Chọn cảm xúc (emotion):</label>
+            <select name="emotion" id="emotion">
+                {% if narrators %}
+                    {% for emotion in narrators[0].emotions %}
+                        <option value="{{ emotion }}">{{ emotion }}</option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+            <small>Chỉ lấy cảm xúc của narrator đầu tiên. (Có thể mở rộng sau)</small>
+        </div>
+        <div class="form-group">
+            <label for="output_folder">Thư mục lưu trữ:</label>
+            <input type="text" name="output_folder" id="output_folder" value="output1" required>
+        </div>
+        <div class="form-group">
+            <label for="text_content">Nhập nội dung text:</label>
+            <textarea name="text_content" id="text_content" rows="6"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="text_file">Hoặc upload file text (.txt):</label>
+            <input type="file" name="text_file" id="text_file" accept=".txt">
+        </div>
+        <button type="submit" class="submit-btn">Tạo file voice</button>
+    </form>
+</body>
+</html>

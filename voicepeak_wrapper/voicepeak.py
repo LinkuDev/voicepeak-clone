@@ -1,5 +1,5 @@
 # Copyright (c) 2023 Nanahuse
-# This software is released under the MIT License
+# Phần mềm này được phát hành theo giấy phép MIT
 # https://opensource.org/license/mit/
 
 import asyncio
@@ -19,14 +19,14 @@ class Voicepeak:
         exe_path: str = os.path.join(os.environ["ProgramFiles"], "VOICEPEAK", "voicepeak.exe"),
     ):
         """
-        標準のインストール先ではない場所にVOICEPEAKインストールした場合はexe_pathを指定してください。
+        Nếu bạn cài đặt VOICEPEAK ở vị trí không phải mặc định, hãy chỉ định exe_path.
 
-        Args:
-            exe_path (str, optional): voicepeak.exeへのパス。Defaultは標準のインストール先。
+        Tham số:
+            exe_path (str, optional): Đường dẫn đến voicepeak.exe. Mặc định là vị trí cài đặt tiêu chuẩn.
         """
 
         if not os.path.exists(exe_path):
-            raise FileNotFoundError("VOICEPEAKの実行ファイルが見つかりません")
+            raise FileNotFoundError("Không tìm thấy file thực thi VOICEPEAK")
         self.__exe_path = exe_path
 
     async def __async_run(self, cmd: str) -> str:
@@ -58,15 +58,15 @@ class Voicepeak:
 
         match text, text_file:
             case str(), str():
-                raise ValueError("textかtext_fileの一方のみ指定してください")
+                raise ValueError("Chỉ được chỉ định một trong hai: text hoặc text_file")
             case str(), None:
                 command.append(f'-s "{text}"')
             case None, str():
                 command.append(f'-t "{text_file}"')
             case None, None:
-                raise ValueError("textまたはtext_fileが設定されている必要があります。")
+                raise ValueError("Cần thiết lập text hoặc text_file.")
             case _:
-                raise ValueError("textまたはtext_fileが不正な値です。")
+                raise ValueError("Giá trị text hoặc text_file không hợp lệ.")
 
         if output_path is not None:
             command.append(f'-o "{output_path}"')
@@ -80,7 +80,7 @@ class Voicepeak:
                 pass
 
         if emotions is not None:
-            command.append(f'-e {",".join(f"{param}={value}" for param, value in emotions.items())}')
+            command.append(f'-e {" ,".join(f"{param}={value}" for param, value in emotions.items())}')
 
         SPEED_RANGE = (50, 200)
         if isinstance(speed, int) and (SPEED_RANGE[0] <= speed <= SPEED_RANGE[1]):
@@ -88,7 +88,7 @@ class Voicepeak:
         elif speed is None:
             pass
         else:
-            raise ValueError(f"speedは{SPEED_RANGE[0]} - {SPEED_RANGE[1]}の範囲内の整数")
+            raise ValueError(f"speed phải là số nguyên trong khoảng {SPEED_RANGE[0]} - {SPEED_RANGE[1]}")
 
         PITCH_RANGE = (-300, 300)
         if isinstance(pitch, int) and (PITCH_RANGE[0] <= pitch <= PITCH_RANGE[1]):
@@ -96,7 +96,7 @@ class Voicepeak:
         elif pitch is None:
             pass
         else:
-            raise ValueError(f"pitchは{PITCH_RANGE[0]} - {PITCH_RANGE[1]}の範囲内の整数")
+            raise ValueError(f"pitch phải là số nguyên trong khoảng {PITCH_RANGE[0]} - {PITCH_RANGE[1]}")
 
         return " ".join(command)
 
@@ -111,20 +111,20 @@ class Voicepeak:
         pitch: int | None = None,
     ):
         """
-        テキストを読み上げたwavファイルを保存する。
+        Lưu file wav đọc văn bản.
 
-        Args:
-            text (str): 読み上げるテキスト
+        Tham số:
+            text (str): Văn bản cần đọc
 
-            output_path (str | None, optional): wavファイル出力先。指定しないとvoicepeak.exeと同じ階層にoutput.wavが生成される。 Defaults to None.
+            output_path (str | None, optional): Đường dẫn lưu file wav. Nếu không chỉ định sẽ tạo file output.wav cùng thư mục với voicepeak.exe. Mặc định: None.
 
-            narrator (Narrator | str | None, optional): 読み上げを行うナレータの種類。Narrator型またはstr型の名前で指定する。 Defaults to None.
+            narrator (Narrator | str | None, optional): Loại narrator đọc. Có thể truyền kiểu Narrator hoặc tên dạng str. Mặc định: None.
 
-            emotions (dict[str, int] | None, optional): 読み上げ時の感情の指示。形式は{"感情名","値"}の辞書型。 Defaults to None.
+            emotions (dict[str, int] | None, optional): Chỉ định cảm xúc khi đọc. Dạng dict {"tên cảm xúc":giá trị}. Mặc định: None.
 
-            speed (int | None, optional): 読み上げのスピード。100が等倍。50~200の範囲。 Defaults to None.
+            speed (int | None, optional): Tốc độ đọc. 100 là bình thường. Khoảng 50~200. Mặc định: None.
 
-            pitch (int | None, optional): 読み上げのピッチ。0が通常。-300~300の範囲。 Defaults to None.
+            pitch (int | None, optional): Cao độ đọc. 0 là bình thường. Khoảng -300~300. Mặc định: None.
         """
         return await self.__async_run(
             self.__make_say_command(
@@ -148,20 +148,20 @@ class Voicepeak:
         pitch: int | None = None,
     ):
         """
-        テキストファイル内のテキストを読み上げたwavファイルを保存する。
+        Lưu file wav đọc nội dung từ file văn bản.
 
-        Args:
-            text_path (str): 読み上げるテキストファイルのパス
+        Tham số:
+            text_path (str): Đường dẫn file văn bản cần đọc
 
-            output_path (str , optional): wavファイル出力先。Defaultはoutput.wavが生成される。
+            output_path (str , optional): Đường dẫn lưu file wav. Mặc định là output.wav.
 
-            narrator (Narrator | str | None, optional): 読み上げを行うナレータの種類。Narrator型またはstr型の名前で指定する。 Defaults to None.
+            narrator (Narrator | str | None, optional): Loại narrator đọc. Có thể truyền kiểu Narrator hoặc tên dạng str. Mặc định: None.
 
-            emotions (dict[str, int] | None, optional): 読み上げ時の感情の指示。形式は{"感情名","値"}の辞書型。 Defaults to None.
+            emotions (dict[str, int] | None, optional): Chỉ định cảm xúc khi đọc. Dạng dict {"tên cảm xúc":giá trị}. Mặc định: None.
 
-            speed (int | None, optional): 読み上げのスピード。100が等倍。50~200の範囲。 Defaults to None.
+            speed (int | None, optional): Tốc độ đọc. 100 là bình thường. Khoảng 50~200. Mặc định: None.
 
-            pitch (int | None, optional): 読み上げのピッチ。0が通常。-300~300の範囲。 Defaults to None.
+            pitch (int | None, optional): Cao độ đọc. 0 là bình thường. Khoảng -300~300. Mặc định: None.
         """
         return await self.__async_run(
             self.__make_say_command(
@@ -176,10 +176,10 @@ class Voicepeak:
 
     async def get_narrator_list(self) -> tuple[Narrator, ...]:
         """
-        ナレーターとその感情名一覧を取得します。
+        Lấy danh sách narrator và các cảm xúc của từng narrator.
 
-        Returns:
-            tuple[Narrator]: ナレーター一覧
+        Trả về:
+            tuple[Narrator]: Danh sách narrator
         """
         narrators = await self.get_narrator_name_list()
         narrator_list = list()
@@ -190,21 +190,21 @@ class Voicepeak:
 
     async def get_narrator_name_list(self) -> tuple[str, ...]:
         """
-        使用可能なナレーターを取得します。
+        Lấy danh sách tên narrator có thể sử dụng.
 
-        Returns:
-            tuple[str]: ナレーターの名前一覧
+        Trả về:
+            tuple[str]: Danh sách tên narrator
         """
         return tuple(tmp for tmp in (await self.__async_run("--list-narrator")).splitlines())
 
     async def get_emotion_list(self, name: str) -> tuple[str, ...]:
         """
-        ナレーターの感情名一覧を取得する。
+        Lấy danh sách tên cảm xúc của narrator.
 
-        Args:
-            name (str): ナレーターの名前
+        Tham số:
+            name (str): Tên narrator
 
-        Returns:
-            tuple[str]: ナレーターの感情名一覧
+        Trả về:
+            tuple[str]: Danh sách tên cảm xúc của narrator
         """
         return tuple(tmp for tmp in (await self.__async_run(f'--list-emotion "{name}"')).splitlines())
