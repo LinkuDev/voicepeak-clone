@@ -27,7 +27,7 @@ templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 # Mount new API router
 app.include_router(api_generate_line_router)
-@app.get("/voice-interactive", response_class=HTMLResponse)
+@app.get("/voice", response_class=HTMLResponse)
 async def voice_interactive_page(request: Request):
     return templates.TemplateResponse("voice_interactive.html", {"request": request})
 
@@ -83,12 +83,12 @@ async def login(request: Request, username: str = Form(...)):
     request.session["username"] = username
     return RedirectResponse("/voice", status_code=303)
 
-@app.get("/voice", response_class=HTMLResponse)
-async def voice_page(request: Request):
-    username = request.session.get("username")
-    if not username:
-        return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse("voice.html", {"request": request, "username": username, "voices": VOICE_CHOICES})
+# @app.get("/voice", response_class=HTMLResponse)
+# async def voice_page(request: Request):
+#     username = request.session.get("username")
+#     if not username:
+#         return RedirectResponse("/", status_code=303)
+#     return templates.TemplateResponse("voice.html", {"request": request, "username": username, "voices": VOICE_CHOICES})
 
 def say_text_sync(client, line, wav_path, voice):
     loop = asyncio.new_event_loop()

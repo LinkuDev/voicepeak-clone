@@ -24,8 +24,8 @@ async def generate_line(
         return JSONResponse({"error": "Thiếu thông tin."}, status_code=400)
     user_dir = os.path.join(STATIC_DIR, username, time_key)
     os.makedirs(user_dir, exist_ok=True)
-    wav_path = os.path.join(user_dir, f"voice_{index}.wav")
-    txt_path = os.path.join(user_dir, f"text_{index:02d}.txt")
+    wav_path = os.path.join(user_dir, f"{index}.wav")
+    txt_path = os.path.join(user_dir, f"{index:02d}.txt")
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(line)
     client = Voicepeak()
@@ -38,7 +38,7 @@ async def generate_line(
             err_file.write(f"Lỗi tạo voice cho dòng {index}: {line}\n{str(e)}\n")
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({
-        "wav_url": f"/static/{username}/{time_key}/voice_{index}.wav",
+        "wav_url": f"/static/{username}/{time_key}/{index}.wav",
         "index": index,
         "text": line
     })

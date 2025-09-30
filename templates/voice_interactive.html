@@ -9,39 +9,53 @@
     <body class="bg-light">
     <div class="container py-5">
         <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card shadow">
-                    <div class="card-body">
-                        <h2 class="mb-4 text-center">Voicepeak Interactive</h2>
-                        <form id="voice-form">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username:</label>
-                                <input type="text" id="username" class="form-control" required>
+            <div class="col-md-10">
+                <div class="row g-4">
+                    <div class="col-md-5">
+                        <div class="card shadow">
+                            <div class="card-body">
+                                <h2 class="mb-4 text-center">Voicepeak Interactive</h2>
+                                <form id="voice-form">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Username:</label>
+                                        <input type="text" id="username" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="voice" class="form-label">Voice:</label>
+                                        <select id="voice" class="form-select">
+                                            <option>Japanese Female Child</option>
+                                            <option>Japanese Male 3</option>
+                                            <option>Japanese Male 2</option>
+                                            <option>Japanese Male 1</option>
+                                            <option>Japanese Female 3</option>
+                                            <option>Japanese Female 2</option>
+                                            <option>Japanese Female 1</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="text-content" class="form-label">Text (mỗi dòng 1 câu):</label>
+                                        <textarea id="text-content" rows="8" class="form-control"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="text-file" class="form-label">Hoặc upload file txt:</label>
+                                        <input type="file" id="text-file" accept=".txt" class="form-control">
+                                    </div>
+                                    <input type="hidden" id="time_key" name="time_key">
+                                    <button type="submit" class="btn btn-success w-100">Tạo voice</button>
+                                </form>
+                                <div id="alert-success" class="alert alert-success mt-4 d-none" role="alert">
+                                    Đã tạo xong tất cả các dòng!
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="voice" class="form-label">Voice:</label>
-                                <select id="voice" class="form-select">
-                                    <option>Japanese Female Child</option>
-                                    <option>Japanese Male 3</option>
-                                    <option>Japanese Male 2</option>
-                                    <option>Japanese Male 1</option>
-                                    <option>Japanese Female 3</option>
-                                    <option>Japanese Female 2</option>
-                                    <option>Japanese Female 1</option>
-                                </select>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="card shadow">
+                            <div class="card-body">
+                                <h4 class="mb-3">Kết quả từng dòng</h4>
+                                <div class="result-list" id="result-list"></div>
                             </div>
-                            <div class="mb-3">
-                                <label for="text-content" class="form-label">Text (mỗi dòng 1 câu):</label>
-                                <textarea id="text-content" rows="8" class="form-control"></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="text-file" class="form-label">Hoặc upload file txt:</label>
-                                <input type="file" id="text-file" accept=".txt" class="form-control">
-                            </div>
-                            <input type="hidden" id="time_key" name="time_key">
-                            <button type="submit" class="btn btn-success w-100">Tạo voice</button>
-                        </form>
-                        <div class="result-list mt-4" id="result-list"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -52,6 +66,7 @@
     const resultList = document.getElementById('result-list');
     const textFile = document.getElementById('text-file');
     const textContent = document.getElementById('text-content');
+    const alertSuccess = document.getElementById('alert-success');
 
     // Sinh time_key 1 lần duy nhất khi submit
     function genTimeKey() {
@@ -68,6 +83,7 @@
     form.onsubmit = async function(e) {
         e.preventDefault();
         resultList.innerHTML = '';
+        alertSuccess.classList.add('d-none');
         let lines = [];
         if (textFile.files.length > 0) {
             const file = textFile.files[0];
@@ -87,6 +103,7 @@
             timeKey = genTimeKey();
             document.getElementById('time_key').value = timeKey;
         }
+        let successCount = 0;
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const item = document.createElement('div');
@@ -104,12 +121,16 @@
                 const data = await res.json();
                 if (data.wav_url) {
                     item.innerHTML = `<b>Dòng ${i+1}:</b> ${line}<br><audio controls src="${data.wav_url}"></audio>`;
+                    successCount++;
                 } else {
                     item.innerHTML = `<b>Dòng ${i+1}:</b> Lỗi: ${data.error || 'Không rõ'}<br><span>${line}</span>`;
                 }
             } catch (err) {
                 item.innerHTML = `<b>Dòng ${i+1}:</b> Lỗi kết nối!<br><span>${line}</span>`;
             }
+        }
+        if (successCount === lines.length) {
+            alertSuccess.classList.remove('d-none');
         }
     };
     </script>
