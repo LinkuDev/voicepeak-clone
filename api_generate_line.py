@@ -29,7 +29,11 @@ async def generate_line(
         f.write(line)
     client = Voicepeak()
     try:
-        await asyncio.to_thread(client.say_text, line, wav_path, voice)
+        await client.say_text(
+            line,
+            output_path=wav_path,
+            narrator=voice
+        )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({

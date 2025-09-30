@@ -3,38 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <title>Voicepeak Interactive</title>
-    <style>
-        body { font-family: Arial; margin: 2em; }
-        .result-list { margin-top: 2em; }
-        .result-item { margin-bottom: 1em; }
-        .progress { color: #888; }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <h2>Voicepeak Interactive</h2>
-    <form id="voice-form">
-        <label>Username: <input type="text" id="username" required></label><br><br>
-        <label>Voice:
-            <select id="voice">
-                <option>Japanese Female Child</option>
-                <option>Japanese Male 3</option>
-                <option>Japanese Male 2</option>
-                <option>Japanese Male 1</option>
-                <option>Japanese Female 3</option>
-                <option>Japanese Female 2</option>
-                <option>Japanese Female 1</option>
-            </select>
-        </label><br><br>
-        <label>Text (mỗi dòng 1 câu):<br>
-            <textarea id="text-content" rows="8" cols="60"></textarea>
-        </label><br>
-        <label>Hoặc upload file txt:
-            <input type="file" id="text-file" accept=".txt">
-        </label><br><br>
-        <input type="hidden" id="time_key" name="time_key">
-        <button type="submit">Tạo voice</button>
-    </form>
-    <div class="result-list" id="result-list"></div>
+    <body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h2 class="mb-4 text-center">Voicepeak Interactive</h2>
+                        <form id="voice-form">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username:</label>
+                                <input type="text" id="username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="voice" class="form-label">Voice:</label>
+                                <select id="voice" class="form-select">
+                                    <option>Japanese Female Child</option>
+                                    <option>Japanese Male 3</option>
+                                    <option>Japanese Male 2</option>
+                                    <option>Japanese Male 1</option>
+                                    <option>Japanese Female 3</option>
+                                    <option>Japanese Female 2</option>
+                                    <option>Japanese Female 1</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="text-content" class="form-label">Text (mỗi dòng 1 câu):</label>
+                                <textarea id="text-content" rows="8" class="form-control"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="text-file" class="form-label">Hoặc upload file txt:</label>
+                                <input type="file" id="text-file" accept=".txt" class="form-control">
+                            </div>
+                            <input type="hidden" id="time_key" name="time_key">
+                            <button type="submit" class="btn btn-success w-100">Tạo voice</button>
+                        </form>
+                        <div class="result-list mt-4" id="result-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
     const form = document.getElementById('voice-form');
     const resultList = document.getElementById('result-list');
