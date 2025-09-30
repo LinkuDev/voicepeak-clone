@@ -78,6 +78,12 @@ async def voice_page(request: Request):
         return RedirectResponse("/", status_code=303)
     return templates.TemplateResponse("voice.html", {"request": request, "username": username, "voices": VOICE_CHOICES})
 
+def say_text_sync(client, line, wav_path, voice):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(client.say_text(line, output_path=wav_path, narrator=voice))
+    loop.close()
+
 @app.post("/generate", response_class=HTMLResponse)
 async def generate(
     request: Request,
@@ -109,7 +115,7 @@ async def generate(
             with open(txt_path, "w", encoding="utf-8") as single_txt:
                 single_txt.write(line)
             try:
-                await asyncio.to_thread(client.say_text, line, output_path=wav_path, narrator=voice)
+                await asyncio.to_thread(say_text_sync, client, line, wav_path, voice)
             except Exception as e:
                 error_log = os.path.join(output_path, "error.log")
                 with open(error_log, "a", encoding="utf-8") as err_file:
