@@ -14,11 +14,11 @@
                     <div class="col-md-5">
                         <div class="card shadow">
                             <div class="card-body">
-                                <h2 class="mb-4 text-center">Voicepeak Interactive</h2>
+                                <h2 class="mb-4 text-center">Voicepeak</h2>
                                 <form id="voice-form">
                                     <div class="mb-3">
                                         <label for="username" class="form-label">Username:</label>
-                                        <input type="text" id="username" class="form-control" required>
+                                        <input type="text" id="username" class="form-control" value="{{ username }}" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label for="voice" class="form-label">Voice:</label>
@@ -52,7 +52,7 @@
                     <div class="col-md-7">
                         <div class="card shadow">
                             <div class="card-body">
-                                <h4 class="mb-3">Kết quả từng dòng</h4>
+                                <h4 class="mb-3">Kết quả</h4>
                                 <div class="result-list" id="result-list"></div>
                             </div>
                         </div>
