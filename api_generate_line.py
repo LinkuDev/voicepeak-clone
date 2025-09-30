@@ -24,7 +24,7 @@ async def generate_line(
         return JSONResponse({"error": "Thiếu thông tin."}, status_code=400)
     user_dir = os.path.join(STATIC_DIR, username, time_key)
     os.makedirs(user_dir, exist_ok=True)
-    wav_path = os.path.join(user_dir, f"{index}.wav")
+    wav_path = os.path.join(user_dir, f"{index:02d}.wav")
     txt_path = os.path.join(user_dir, f"{index:02d}.txt")
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(line)
