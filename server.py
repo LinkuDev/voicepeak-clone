@@ -32,6 +32,10 @@ async def voice_interactive_page(request: Request):
     return templates.TemplateResponse("voice_interactive.html", {"request": request})
     username = request.session.get("username", "")
     return templates.TemplateResponse("voice_interactive.html", {"request": request, "username": username})
+    username = request.session.get("username")
+    if not username:
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse("voice_interactive.html", {"request": request, "username": username})
 
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
