@@ -84,7 +84,7 @@ async def login(request: Request, username: str = Form(...)):
         conn.commit()
     conn.close()
     request.session["username"] = username
-    return RedirectResponse("/voice", status_code=303)
+    return RedirectResponse("voice", status_code=303)
 
 # @app.get("/voice", response_class=HTMLResponse)
 # async def voice_page(request: Request):
