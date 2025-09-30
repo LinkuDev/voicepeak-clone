@@ -9,10 +9,6 @@ import sqlite3
 from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
 from voicepeak_wrapper.voicepeak import Voicepeak, Narrator
-import sys
-
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 app = FastAPI()
 
@@ -112,7 +108,7 @@ async def generate(
             txt_out.write(f"{idx}: {line}\n")
             with open(txt_path, "w", encoding="utf-8") as single_txt:
                 single_txt.write(line)
-            await client.say_text(line, output_path=wav_path, narrator=voice)
+            await asyncio.to_thread(client.say_text, line, output_path=wav_path, narrator=voice)
     return templates.TemplateResponse("result.html", {
         "request": request,
         "output_path": output_path,
