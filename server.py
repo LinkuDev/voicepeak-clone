@@ -108,11 +108,16 @@ async def generate(
             txt_out.write(f"{idx}: {line}\n")
             with open(txt_path, "w", encoding="utf-8") as single_txt:
                 single_txt.write(line)
-            await asyncio.to_thread(client.say_text, line, output_path=wav_path, narrator=voice)
-    return templates.TemplateResponse("result.html", {
+            try:
+                await asyncio.to_thread(client.say_text, line, output_path=wav_path, narrator=voice)
+            except Exception as e:
+                error_log = os.path.join(output_path, "error.log")
+                with open(error_log, "a", encoding="utf-8") as err_file:
+                    err_file.write(f"Lỗi tạo voice cho dòng {idx}: {line}\n{str(e)}\n")
+    # Trả về thông báo thành công, không render danh sách file
+    return templates.TemplateResponse("success.html", {
         "request": request,
         "output_path": output_path,
-        "lines": lines,
         "username": username,
         "voice": voice
     })

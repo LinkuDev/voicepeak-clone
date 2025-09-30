@@ -16,10 +16,12 @@
                         <p><b>Thư mục lưu:</b> {{ output_path }}</p>
                         <p><b>Số dòng đã xử lý:</b> {{ lines|length }}</p>
                         <ul class="list-group mb-4">
-                            {% for idx, line in enumerate(lines) %}
-                            <li class="list-group-item">voice_{{ idx }}.wav & text_{{ '%02d' % idx }}.txt: {{ line }}</li>
-                            {% endfor %}
-                        </ul>
+							{% for line in lines %}
+							<li class="list-group-item">
+								voice_{{ loop.index0 }}.wav & text_{{ '%02d' % loop.index0 }}.txt: {{ line }}
+							</li>
+							{% endfor %}
+						</ul>
                         <a href="/voice" class="btn btn-primary w-100">Quay lại chọn giọng đọc</a>
                     </div>
                 </div>
