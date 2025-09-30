@@ -1,3 +1,4 @@
+from voicepeak_wrapper.util import say_text_sync
 
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import JSONResponse
@@ -29,12 +30,12 @@ async def generate_line(
         f.write(line)
     client = Voicepeak()
     try:
-        await client.say_text(
-            line,
-            output_path=wav_path,
-            narrator=voice
-        )
+        await asyncio.to_thread(say_text_sync, client, line, wav_path, voice)
     except Exception as e:
+        # Ghi lỗi ra file error.log như server.py
+        error_log = os.path.join(user_dir, "error.log")
+        with open(error_log, "a", encoding="utf-8") as err_file:
+            err_file.write(f"Lỗi tạo voice cho dòng {index}: {line}\n{str(e)}\n")
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({
         "wav_url": f"/static/{username}/{time_key}/voice_{index}.wav",
