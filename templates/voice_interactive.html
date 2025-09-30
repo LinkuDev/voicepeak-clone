@@ -117,7 +117,7 @@
             formData.append('index', i);
             formData.append('time_key', timeKey);
             try {
-                const res = await fetch('/api/generate-line', { method: 'POST', body: formData });
+                const res = await fetch('api/generate-line', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.wav_url) {
                     item.innerHTML = `<b>Dòng ${i+1}:</b> ${line}<br><audio controls src="${data.wav_url}"></audio>`;
