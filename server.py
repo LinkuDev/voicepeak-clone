@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,14 +11,25 @@ from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
 from voicepeak_wrapper.voicepeak import Voicepeak, Narrator
 
+# Mount new API router for interactive line-by-line API
+from api_generate_line import router as api_generate_line_router
+
+
 app = FastAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 OUTPUT_BASE = os.path.join(BASE_DIR, "output_web")
 
+
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
+
+# Mount new API router
+app.include_router(api_generate_line_router)
+@app.get("/voice-interactive", response_class=HTMLResponse)
+async def voice_interactive_page(request: Request):
+    return templates.TemplateResponse("voice_interactive.html", {"request": request})
 
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 

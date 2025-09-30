@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voicepeak Interactive</title>
+    <style>
+        body { font-family: Arial; margin: 2em; }
+        .result-list { margin-top: 2em; }
+        .result-item { margin-bottom: 1em; }
+        .progress { color: #888; }
+    </style>
+</head>
+<body>
+    <h2>Voicepeak Interactive</h2>
+    <form id="voice-form">
+        <label>Username: <input type="text" id="username" required></label><br><br>
+        <label>Voice:
+            <select id="voice">
+                <option>Japanese Female Child</option>
+                <option>Japanese Male 3</option>
+                <option>Japanese Male 2</option>
+                <option>Japanese Male 1</option>
+                <option>Japanese Female 3</option>
+                <option>Japanese Female 2</option>
+                <option>Japanese Female 1</option>
+            </select>
+        </label><br><br>
+        <label>Text (mỗi dòng 1 câu):<br>
+            <textarea id="text-content" rows="8" cols="60"></textarea>
+        </label><br>
+        <label>Hoặc upload file txt:
+            <input type="file" id="text-file" accept=".txt">
+        </label><br><br>
+        <input type="hidden" id="time_key" name="time_key">
+        <button type="submit">Tạo voice</button>
+    </form>
+    <div class="result-list" id="result-list"></div>
+    <script>
+    const form = document.getElementById('voice-form');
+    const resultList = document.getElementById('result-list');
+    const textFile = document.getElementById('text-file');
+    const textContent = document.getElementById('text-content');
+
+    // Sinh time_key 1 lần duy nhất khi submit
+    function genTimeKey() {
+        const d = new Date();
+        return d.getFullYear().toString() +
+            ("0" + (d.getMonth()+1)).slice(-2) +
+            ("0" + d.getDate()).slice(-2) + "_" +
+            ("0" + d.getHours()).slice(-2) +
+            ("0" + d.getMinutes()).slice(-2) +
+            ("0" + d.getSeconds()).slice(-2) +
+            ("00" + d.getMilliseconds()).slice(-3);
+    }
+
+    form.onsubmit = async function(e) {
+        e.preventDefault();
+        resultList.innerHTML = '';
+        let lines = [];
+        if (textFile.files.length > 0) {
+            const file = textFile.files[0];
+            const content = await file.text();
+            lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+        } else {
+            lines = textContent.value.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+        }
+        if (lines.length === 0) {
+            alert('Vui lòng nhập hoặc upload nội dung!');
+            return;
+        }
+        const username = document.getElementById('username').value.trim();
+        const voice = document.getElementById('voice').value;
+        let timeKey = document.getElementById('time_key').value;
+        if (!timeKey) {
+            timeKey = genTimeKey();
+            document.getElementById('time_key').value = timeKey;
+        }
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.innerHTML = `<span class="progress">Đang tạo dòng ${i+1}...</span>`;
+            resultList.appendChild(item);
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('voice', voice);
+            formData.append('line', line);
+            formData.append('index', i);
+            formData.append('time_key', timeKey);
+            try {
+                const res = await fetch('/api/generate-line', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.wav_url) {
+                    item.innerHTML = `<b>Dòng ${i+1}:</b> ${line}<br><audio controls src="${data.wav_url}"></audio>`;
+                } else {
+                    item.innerHTML = `<b>Dòng ${i+1}:</b> Lỗi: ${data.error || 'Không rõ'}<br><span>${line}</span>`;
+                }
+            } catch (err) {
+                item.innerHTML = `<b>Dòng ${i+1}:</b> Lỗi kết nối!<br><span>${line}</span>`;
+            }
+        }
+    };
+    </script>
+</body>
+</html>
