@@ -41,7 +41,7 @@ async def generate_line(
             err_file.write(f"Lỗi tạo voice cho dòng {index}: {line}\n{str(e)}\n")
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({
-        "wav_url": f"/static/{username}/{time_key}/{index}.wav",
+        "wav_url": f"static/{username}/{time_key}/{index:02d}.wav",
         "index": index,
         "text": line
     })
@@ -137,8 +137,8 @@ async def merge_audio(
                 srt_file.write(f"{entry['text']}\n\n")
         
         return JSONResponse({
-            "full_wav_url": f"/static/{username}/{time_key}/full.wav",
-            "full_srt_url": f"/static/{username}/{time_key}/full.srt",
+            "full_wav_url": f"static/{username}/{time_key}/full.wav",
+            "full_srt_url": f"static/{username}/{time_key}/full.srt",
             "total_lines": len(srt_entries),
             "total_duration_seconds": current_time_ms / 1000
         })
