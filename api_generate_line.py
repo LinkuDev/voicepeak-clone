@@ -6,11 +6,8 @@ import os
 import asyncio
 import glob
 import wave
-from pydub import AudioSegment
+import struct
 from voicepeak_wrapper.voicepeak import Voicepeak
-import imageio
-
-AudioSegment.converter = imageio.plugins.ffmpeg.get_exe()
 
 router = APIRouter()
 
@@ -74,12 +71,22 @@ async def merge_audio(
     
     try:
         # Nối các file wav với khoảng nghỉ 0.5s
-        pause_duration = 500  # milliseconds
-        pause = AudioSegment.silent(duration=pause_duration)
+        pause_duration_ms = 500  # milliseconds
         
-        combined = AudioSegment.empty()
+        # Đọc thông tin từ file wav đầu tiên để lấy params
+        with wave.open(wav_files[0], 'rb') as first_wav:
+            params = first_wav.getparams()
+            sample_rate = params.framerate
+            sample_width = params.sampwidth
+            channels = params.nchannels
+        
+        # Tính số frames cho khoảng nghỉ 0.5s
+        pause_frames = int(sample_rate * pause_duration_ms / 1000)
+        pause_data = b'\x00' * (pause_frames * sample_width * channels)
+        
+        combined_frames = []
         srt_entries = []
-        current_time = 0  # milliseconds
+        current_time_ms = 0  # milliseconds
         
         for idx, (wav_file, txt_file) in enumerate(zip(wav_files, txt_files), start=1):
             # Đọc nội dung text
@@ -87,12 +94,13 @@ async def merge_audio(
                 text_content = f.read().strip()
             
             # Đọc file wav
-            audio = AudioSegment.from_wav(wav_file)
-            duration = len(audio)  # milliseconds
+            with wave.open(wav_file, 'rb') as wav:
+                frames = wav.readframes(wav.getnframes())
+                duration_ms = int((wav.getnframes() / sample_rate) * 1000)
             
             # Tạo entry cho SRT
-            start_time = current_time
-            end_time = current_time + duration
+            start_time = current_time_ms
+            end_time = current_time_ms + duration_ms
             
             srt_entries.append({
                 "index": idx,
@@ -101,18 +109,20 @@ async def merge_audio(
                 "text": text_content
             })
             
-            # Thêm audio vào combined
-            combined += audio
-            current_time += duration
+            # Thêm audio frames
+            combined_frames.append(frames)
+            current_time_ms += duration_ms
             
             # Thêm khoảng nghỉ (trừ file cuối cùng)
             if idx < len(wav_files):
-                combined += pause
-                current_time += pause_duration
+                combined_frames.append(pause_data)
+                current_time_ms += pause_duration_ms
         
         # Lưu file full.wav
         full_wav_path = os.path.join(user_dir, "full.wav")
-        combined.export(full_wav_path, format="wav")
+        with wave.open(full_wav_path, 'wb') as output_wav:
+            output_wav.setparams(params)
+            output_wav.writeframes(b''.join(combined_frames))
         
         # Tạo file full.srt
         full_srt_path = os.path.join(user_dir, "full.srt")
@@ -130,7 +140,7 @@ async def merge_audio(
             "full_wav_url": f"/static/{username}/{time_key}/full.wav",
             "full_srt_url": f"/static/{username}/{time_key}/full.srt",
             "total_lines": len(srt_entries),
-            "total_duration_seconds": current_time / 1000
+            "total_duration_seconds": current_time_ms / 1000
         })
     
     except Exception as e:
