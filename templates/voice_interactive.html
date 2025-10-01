@@ -130,6 +130,9 @@
                 item.innerHTML = `<b>Dòng ${i+1}:</b> Lỗi kết nối!<br><span>${line}</span>`;
             }
         }
+		setTimeout(function(){
+			// do sth
+		}, 5000);
         if (successCount === lines.length) {
             alertSuccess.classList.remove('d-none');
             // Tự động gọi merge-audio sau khi tạo xong tất cả các dòng
@@ -143,7 +146,7 @@
             mergeFormData.append('time_key', timeKey);
             
             try {
-                const mergeRes = await fetch('/api/merge-audio', { method: 'POST', body: mergeFormData });
+                const mergeRes = await fetch('api/merge-audio', { method: 'POST', body: mergeFormData });
                 const mergeData = await mergeRes.json();
                 if (mergeData.full_wav_url) {
                     mergeItem.className = 'result-item mt-3 alert alert-success';
