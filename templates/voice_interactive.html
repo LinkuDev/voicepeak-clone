@@ -157,6 +157,10 @@
                         <b>File âm thanh:</b> <a href="${mergeData.full_wav_url}" target="_blank">full.wav</a><br>
                         <b>File subtitle:</b> <a href="${mergeData.full_srt_url}" target="_blank">full.srt</a><br>
                         <audio controls src="${mergeData.full_wav_url}" class="mt-2 w-100"></audio>
+                        <hr>
+                        <button class="btn btn-primary w-100 mt-2" onclick="downloadZip('${username}', '${timeKey}')">
+                            📦 Tải xuống toàn bộ (ZIP)
+                        </button>
                     `;
                 } else {
                     mergeItem.className = 'result-item mt-3 alert alert-danger';
@@ -168,6 +172,37 @@
             }
         }
     };
+
+    // Hàm download zip
+    async function downloadZip(username, timeKey) {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('time_key', timeKey);
+        
+        try {
+            const res = await fetch('api/download-zip', { 
+                method: 'POST', 
+                body: formData 
+            });
+            
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${username}_${timeKey.replace(/\./g, '_').replace(/:/g, '_')}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const data = await res.json();
+                alert('Lỗi: ' + (data.error || 'Không thể tải file zip'));
+            }
+        } catch (err) {
+            alert('Lỗi kết nối khi tải file zip!');
+        }
+    }
     </script>
 </body>
 </html>

@@ -1,12 +1,14 @@
 from voicepeak_wrapper.util import say_text_sync
 
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 import os
 import asyncio
 import glob
 import wave
 import struct
+import zipfile
+import tempfile
 from voicepeak_wrapper.voicepeak import Voicepeak
 
 router = APIRouter()
@@ -147,6 +149,51 @@ async def merge_audio(
         error_log = os.path.join(user_dir, "error.log")
         with open(error_log, "a", encoding="utf-8") as err_file:
             err_file.write(f"Lỗi khi merge audio: {str(e)}\n")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/api/download-zip")
+async def download_zip(
+    request: Request,
+    username: str = Form(...),
+    time_key: str = Form(...)
+):
+    """
+    Tạo và download file zip của folder username/time_key
+    """
+    if not username or not time_key:
+        return JSONResponse({"error": "Thiếu thông tin."}, status_code=400)
+    
+    user_dir = os.path.join(STATIC_DIR, username, time_key)
+    if not os.path.exists(user_dir):
+        return JSONResponse({"error": "Thư mục không tồn tại."}, status_code=404)
+    
+    try:
+        # Tạo file zip tạm
+        zip_filename = f"{username}_{time_key.replace('.', '_').replace(':', '_')}.zip"
+        zip_path = os.path.join(tempfile.gettempdir(), zip_filename)
+        
+        # Tạo zip file
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Duyệt qua tất cả file trong thư mục
+            for root, dirs, files in os.walk(user_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Thêm file vào zip với đường dẫn tương đối
+                    arcname = os.path.relpath(file_path, user_dir)
+                    zipf.write(file_path, arcname)
+        
+        # Trả về file zip
+        return FileResponse(
+            path=zip_path,
+            filename=zip_filename,
+            media_type='application/zip',
+            headers={
+                "Content-Disposition": f"attachment; filename={zip_filename}"
+            }
+        )
+    
+    except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
