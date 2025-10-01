@@ -8,6 +8,12 @@
 <body>
     <body class="bg-light">
     <div class="container py-5">
+        <div class="d-flex justify-content-end mb-3">
+            {% if is_admin %}
+            <a href="admin" class="btn btn-sm btn-outline-primary me-2">Quản lý Admin</a>
+            {% endif %}
+            <a href="logout" class="btn btn-sm btn-outline-danger">Đăng xuất</a>
+        </div>
         <div class="row justify-content-center">
             <div class="col">
                 <div class="row g-4">

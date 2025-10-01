@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +9,7 @@ import sqlite3
 from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
 from voicepeak_wrapper.voicepeak import Voicepeak, Narrator
+import hashlib
 
 # Mount new API router for interactive line-by-line API
 from api_generate_line import router as api_generate_line_router
@@ -32,7 +32,12 @@ async def voice_interactive_page(request: Request):
     username = request.session.get("username")
     if not username:
         return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse("voice_interactive.html", {"request": request, "username": username})
+    is_admin = request.session.get("is_admin", False)
+    return templates.TemplateResponse("voice_interactive.html", {
+        "request": request, 
+        "username": username,
+        "is_admin": is_admin
+    })
 
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
@@ -59,9 +64,16 @@ def init_db():
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY
+            username TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            is_admin INTEGER DEFAULT 0
         )
     """)
+    # Tạo admin mặc định nếu chưa có
+    c.execute("SELECT username FROM users WHERE username='admin'")
+    if not c.fetchone():
+        admin_pass = hashlib.sha256("admin123".encode()).hexdigest()
+        c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, 1)", ("admin", admin_pass))
     conn.commit()
     conn.close()
 
@@ -72,26 +84,102 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.post("/login", response_class=HTMLResponse)
-async def login(request: Request, username: str = Form(...)):
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     username = username.strip()
-    if not username:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Vui lòng nhập tên người dùng."})
+    if not username or not password:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Vui lòng nhập đầy đủ thông tin."})
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT username FROM users WHERE username=?", (username,))
-    if not c.fetchone():
-        c.execute("INSERT INTO users (username) VALUES (?)", (username,))
-        conn.commit()
+    hashed_pass = hashlib.sha256(password.encode()).hexdigest()
+    c.execute("SELECT username, is_admin FROM users WHERE username=? AND password=?", (username, hashed_pass))
+    user = c.fetchone()
     conn.close()
-    request.session["username"] = username
-    return RedirectResponse("voice", status_code=303)
+    if user:
+        request.session["username"] = user[0]
+        request.session["is_admin"] = bool(user[1])
+        return RedirectResponse("voice", status_code=303)
+    else:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Tên đăng nhập hoặc mật khẩu không đúng."})
 
-# @app.get("/voice", response_class=HTMLResponse)
-# async def voice_page(request: Request):
-#     username = request.session.get("username")
-#     if not username:
-#         return RedirectResponse("/", status_code=303)
-#     return templates.TemplateResponse("voice.html", {"request": request, "username": username, "voices": VOICE_CHOICES})
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request):
+    username = request.session.get("username")
+    is_admin = request.session.get("is_admin", False)
+    if not username or not is_admin:
+        return RedirectResponse("/", status_code=303)
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT username, is_admin FROM users ORDER BY username")
+    users = c.fetchall()
+    conn.close()
+    
+    return templates.TemplateResponse("admin.html", {
+        "request": request, 
+        "username": username,
+        "users": users
+    })
+
+@app.post("/admin/add-user", response_class=HTMLResponse)
+async def add_user(request: Request, new_username: str = Form(...), new_password: str = Form(...), is_admin: int = Form(0)):
+    username = request.session.get("username")
+    if not username or not request.session.get("is_admin"):
+        return RedirectResponse("/", status_code=303)
+    
+    new_username = new_username.strip()
+    if not new_username or not new_password:
+        return RedirectResponse("admin?error=empty", status_code=303)
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        hashed_pass = hashlib.sha256(new_password.encode()).hexdigest()
+        c.execute("INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)", 
+                  (new_username, hashed_pass, is_admin))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return RedirectResponse("admin?error=exists", status_code=303)
+    conn.close()
+    return RedirectResponse("admin?success=added", status_code=303)
+
+@app.post("/admin/update-password", response_class=HTMLResponse)
+async def update_password(request: Request, target_username: str = Form(...), new_password: str = Form(...)):
+    username = request.session.get("username")
+    if not username or not request.session.get("is_admin"):
+        return RedirectResponse("/", status_code=303)
+    
+    if not new_password:
+        return RedirectResponse("admin?error=empty", status_code=303)
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    hashed_pass = hashlib.sha256(new_password.encode()).hexdigest()
+    c.execute("UPDATE users SET password=? WHERE username=?", (hashed_pass, target_username))
+    conn.commit()
+    conn.close()
+    return RedirectResponse("admin?success=updated", status_code=303)
+
+@app.post("/admin/delete-user", response_class=HTMLResponse)
+async def delete_user(request: Request, target_username: str = Form(...)):
+    username = request.session.get("username")
+    if not username or not request.session.get("is_admin"):
+        return RedirectResponse("/", status_code=303)
+    
+    if target_username == "admin":
+        return RedirectResponse("admin?error=cannot_delete_admin", status_code=303)
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("DELETE FROM users WHERE username=?", (target_username,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse("admin?success=deleted", status_code=303)
+
+@app.get("/logout", response_class=HTMLResponse)
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/", status_code=303)
 
 def say_text_sync(client, line, wav_path, voice):
     loop = asyncio.new_event_loop()
