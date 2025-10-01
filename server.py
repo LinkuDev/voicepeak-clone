@@ -128,7 +128,7 @@ async def add_user(request: Request, new_username: str = Form(...), new_password
     
     new_username = new_username.strip()
     if not new_username or not new_password:
-        return RedirectResponse("?error=empty", status_code=303)
+        return RedirectResponse("../admin?error=empty", status_code=303)
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -139,9 +139,9 @@ async def add_user(request: Request, new_username: str = Form(...), new_password
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
-        return RedirectResponse("?error=exists", status_code=303)
+        return RedirectResponse("../admin?error=exists", status_code=303)
     conn.close()
-    return RedirectResponse("?success=added", status_code=303)
+    return RedirectResponse("../admin?success=added", status_code=303)
 
 @app.post("/admin/update-password", response_class=HTMLResponse)
 async def update_password(request: Request, target_username: str = Form(...), new_password: str = Form(...)):
@@ -150,7 +150,7 @@ async def update_password(request: Request, target_username: str = Form(...), ne
         return RedirectResponse("/", status_code=303)
     
     if not new_password:
-        return RedirectResponse("?error=empty", status_code=303)
+        return RedirectResponse("../admin?error=empty", status_code=303)
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -158,7 +158,7 @@ async def update_password(request: Request, target_username: str = Form(...), ne
     c.execute("UPDATE users SET password=? WHERE username=?", (hashed_pass, target_username))
     conn.commit()
     conn.close()
-    return RedirectResponse("?success=updated", status_code=303)
+    return RedirectResponse("../admin?success=updated", status_code=303)
 
 @app.post("/admin/delete-user", response_class=HTMLResponse)
 async def delete_user(request: Request, target_username: str = Form(...)):
@@ -167,14 +167,14 @@ async def delete_user(request: Request, target_username: str = Form(...)):
         return RedirectResponse("/", status_code=303)
     
     if target_username == "admin":
-        return RedirectResponse("?error=cannot_delete_admin", status_code=303)
+        return RedirectResponse("../admin?error=cannot_delete_admin", status_code=303)
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM users WHERE username=?", (target_username,))
     conn.commit()
     conn.close()
-    return RedirectResponse("?success=deleted", status_code=303)
+    return RedirectResponse("../admin?success=deleted", status_code=303)
 
 @app.get("/logout", response_class=HTMLResponse)
 async def logout(request: Request):
