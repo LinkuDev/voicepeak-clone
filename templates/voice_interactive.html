@@ -70,15 +70,16 @@
 
     // Sinh time_key 1 lần duy nhất khi submit
     function genTimeKey() {
-        const d = new Date();
-        return d.getFullYear().toString() +
-            ("0" + (d.getMonth()+1)).slice(-2) +
-            ("0" + d.getDate()).slice(-2) + "_" +
-            ("0" + d.getHours()).slice(-2) +
-            ("0" + d.getMinutes()).slice(-2) +
-            ("0" + d.getSeconds()).slice(-2) +
-            ("00" + d.getMilliseconds()).slice(-3);
-    }
+		const d = new Date();
+
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+		const hours = String(d.getHours()).padStart(2, '0');
+		const minutes = String(d.getMinutes()).padStart(2, '0');
+
+		return `${day}/${month}/${year}_${hours}:${minutes}`;
+	}
 
     form.onsubmit = async function(e) {
         e.preventDefault();
