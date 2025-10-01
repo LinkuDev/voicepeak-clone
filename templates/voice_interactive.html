@@ -78,7 +78,7 @@
 		const hours = String(d.getHours()).padStart(2, '0');
 		const minutes = String(d.getMinutes()).padStart(2, '0');
 
-		return `${day}/${month}/${year}_${hours}:${minutes}`;
+		return `${day}.${month}.${year}_${hours}.${minutes}`;
 	}
 
     form.onsubmit = async function(e) {
