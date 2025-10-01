@@ -8,6 +8,9 @@ import glob
 import wave
 from pydub import AudioSegment
 from voicepeak_wrapper.voicepeak import Voicepeak
+import imageio
+
+AudioSegment.converter = imageio.plugins.ffmpeg.get_exe()
 
 router = APIRouter()
 
