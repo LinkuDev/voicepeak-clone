@@ -132,6 +132,37 @@
         }
         if (successCount === lines.length) {
             alertSuccess.classList.remove('d-none');
+            // Tự động gọi merge-audio sau khi tạo xong tất cả các dòng
+            const mergeItem = document.createElement('div');
+            mergeItem.className = 'result-item mt-3 alert alert-info';
+            mergeItem.innerHTML = '<strong>Đang tạo file tổng hợp (full.wav & full.srt)...</strong>';
+            resultList.appendChild(mergeItem);
+            
+            const mergeFormData = new FormData();
+            mergeFormData.append('username', username);
+            mergeFormData.append('time_key', timeKey);
+            
+            try {
+                const mergeRes = await fetch('/api/merge-audio', { method: 'POST', body: mergeFormData });
+                const mergeData = await mergeRes.json();
+                if (mergeData.full_wav_url) {
+                    mergeItem.className = 'result-item mt-3 alert alert-success';
+                    mergeItem.innerHTML = `
+                        <strong>✓ Đã tạo xong file tổng hợp!</strong><br>
+                        <b>Tổng số dòng:</b> ${mergeData.total_lines}<br>
+                        <b>Tổng thời lượng:</b> ${mergeData.total_duration_seconds.toFixed(2)}s<br>
+                        <b>File âm thanh:</b> <a href="${mergeData.full_wav_url}" target="_blank">full.wav</a><br>
+                        <b>File subtitle:</b> <a href="${mergeData.full_srt_url}" target="_blank">full.srt</a><br>
+                        <audio controls src="${mergeData.full_wav_url}" class="mt-2 w-100"></audio>
+                    `;
+                } else {
+                    mergeItem.className = 'result-item mt-3 alert alert-danger';
+                    mergeItem.innerHTML = `<strong>✗ Lỗi khi tạo file tổng hợp:</strong> ${mergeData.error || 'Không rõ'}`;
+                }
+            } catch (err) {
+                mergeItem.className = 'result-item mt-3 alert alert-danger';
+                mergeItem.innerHTML = `<strong>✗ Lỗi kết nối khi tạo file tổng hợp!</strong>`;
+            }
         }
     };
     </script>
