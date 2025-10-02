@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from pydantic import BaseModel
 import asyncio
+import json
 import requests
 from typing import Any, Dict
 
@@ -52,15 +53,25 @@ async def start_task():
 # POST /callback
 # -----------------------------
 @app.post(ROUTE_CALLBACK)
-async def callback(data: CallbackData):
+async def callback(cookies: str = Form(...)):
+    """
+    cookies: JSON string gửi từ form data, ví dụ:
+    '{"c_user":"123","xs":"abcd"}'
+    """
+    try:
+        cookies_dict: Dict[str, Any] = json.loads(cookies)
+    except json.JSONDecodeError:
+        return {"status": "error", "message": "Invalid JSON in cookies"}
+
     if not pending_requests:
         return {"status": "no pending request"}
 
-    # Lấy Future đầu tiên (FIFO)
+    # Lấy Future đầu tiên trong queue (FIFO)
     future = pending_requests.pop(0)
     if not future.done():
-        future.set_result(data.cookies)
-        print("[CALLBACK] Callback received, notified GET request")
+        future.set_result(cookies_dict)
+        print("[CALLBACK] Callback received from form data, notified first GET request")
+
     return {"status": "ok"}
 
 # -----------------------------
