@@ -30,13 +30,19 @@ async def start_task():
             pending_requests.remove(future)
         return {"status": "timeout"}
 
-    # --- xử lý string '[object Object],[object Object]' thành array ---
-    # cơ bản nhất, convert thành list các dict rỗng
-    if raw_cookies.strip() == "":
-        cookies_list: List[Any] = []
-    else:
-        # mỗi '[object Object]' thành dict rỗng {} 
-        cookies_list = [{} for _ in raw_cookies.split(",")]
+    # Parse JSON string thành list cookies
+    try:
+        if raw_cookies.strip() == "":
+            cookies_list: List[Any] = []
+        else:
+            # Nếu là JSON string, parse nó
+            cookies_list = json.loads(raw_cookies)
+            print(f"[START] Parsed {len(cookies_list)} cookies successfully")
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] Failed to parse cookies JSON: {e}")
+        print(f"[ERROR] Raw cookies: {raw_cookies[:500]}")
+        # Nếu không parse được, trả về raw string
+        return {"status": "error", "message": "Invalid JSON", "raw": raw_cookies[:200]}
 
     return {"status": "done", "cookies": cookies_list}
 
@@ -44,7 +50,7 @@ async def start_task():
 @app.post(ROUTE_CALLBACK)
 async def callback(cookies: str = Form(...)):
     """
-    cookies: raw string callback, ví dụ '[object Object],[object Object]'
+    cookies: JSON string của array cookies, ví dụ '[{"name":"c_user","value":"123"}]'
     """
     if not pending_requests:
         print("[WARNING] Callback received but no pending request")
@@ -53,7 +59,7 @@ async def callback(cookies: str = Form(...)):
     future = pending_requests.pop(0)
     if not future.done():
         future.set_result(cookies)
-        print(f"[CALLBACK] Received raw cookies string: {cookies}")
+        print(f"[CALLBACK] Received cookies: {cookies[:200]}...")  # Log first 200 chars
 
     return {"status": "ok"}
 
