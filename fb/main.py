@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Request
 import asyncio
 import httpx
 import json
@@ -34,32 +34,58 @@ async def start_task():
     try:
         if raw_cookies.strip() == "":
             cookies_list: List[Any] = []
+        # Kiểm tra nếu là [object Object] - lỗi từ JavaScript
+        elif "[object Object]" in raw_cookies:
+            print(f"[ERROR] Received [object Object] - automation service cần gửi JSON.stringify(cookies)")
+            print(f"[ERROR] Raw: {raw_cookies[:200]}")
+            # Đếm số object
+            count = raw_cookies.count("[object Object]")
+            return {
+                "status": "error", 
+                "message": "Automation service needs to send JSON.stringify(cookies), not cookies.toString()",
+                "note": "Fix automation: use JSON.stringify(cookiesArray) instead of cookiesArray.toString()",
+                "received_objects_count": count,
+                "raw_sample": raw_cookies[:200]
+            }
         else:
-            # Nếu là JSON string, parse nó
+            # Parse JSON string
             cookies_list = json.loads(raw_cookies)
             print(f"[START] Parsed {len(cookies_list)} cookies successfully")
     except json.JSONDecodeError as e:
         print(f"[ERROR] Failed to parse cookies JSON: {e}")
         print(f"[ERROR] Raw cookies: {raw_cookies[:500]}")
-        # Nếu không parse được, trả về raw string
-        return {"status": "error", "message": "Invalid JSON", "raw": raw_cookies[:200]}
+        return {
+            "status": "error", 
+            "message": f"Invalid JSON: {str(e)}", 
+            "raw_sample": raw_cookies[:200]
+        }
 
-    return {"status": "done", "cookies": cookies_list}
+    return {"status": "done", "cookies": cookies_list, "count": len(cookies_list)}
 
 
 @app.post(ROUTE_CALLBACK)
-async def callback(cookies: str = Form(...)):
+async def callback(request: Request):
     """
-    cookies: JSON string của array cookies, ví dụ '[{"name":"c_user","value":"123"}]'
+    Nhận raw JSON body từ automation service
     """
+    # Đọc raw body
+    body = await request.body()
+    body_str = body.decode('utf-8')
+    
+    print(f"[CALLBACK] ========== START ==========")
+    print(f"[CALLBACK] Raw body type: {type(body)}")
+    print(f"[CALLBACK] Raw body length: {len(body_str)}")
+    print(f"[CALLBACK] Raw body content: {body_str[:500]}")
+    print(f"[CALLBACK] ========== END ==========")
+    
     if not pending_requests:
         print("[WARNING] Callback received but no pending request")
         return {"status": "no pending request"}
 
     future = pending_requests.pop(0)
     if not future.done():
-        future.set_result(cookies)
-        print(f"[CALLBACK] Received cookies: {cookies[:200]}...")  # Log first 200 chars
+        future.set_result(body_str)
+        print(f"[CALLBACK] ✓ Set result to future")
 
     return {"status": "ok"}
 
