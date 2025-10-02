@@ -16,11 +16,9 @@ async def start_task():
     future = loop.create_future()
     pending_requests.append(future)
 
-    # gọi automation service async
+    # Gọi automation service
     async with httpx.AsyncClient() as client:
-        resp = await client.get("https://api.locab.pro/partner/schedule/execute/be9e308b843dd9245b4a24413c0778de")
-        result = resp.json()
-        print(f"[START] Automation response: {result}, waiting for callback...")
+        await client.get("https://api.locab.pro/partner/schedule/execute/be9e308b843dd9245b4a24413c0778de")
 
     try:
         # đợi callback max 60s
@@ -30,62 +28,35 @@ async def start_task():
             pending_requests.remove(future)
         return {"status": "timeout"}
 
-    # Parse JSON string thành list cookies
+    # Parse và trả về JSON array cookies trực tiếp
     try:
-        if raw_cookies.strip() == "":
-            cookies_list: List[Any] = []
-        # Kiểm tra nếu là [object Object] - lỗi từ JavaScript
-        elif "[object Object]" in raw_cookies:
-            print(f"[ERROR] Received [object Object] - automation service cần gửi JSON.stringify(cookies)")
-            print(f"[ERROR] Raw: {raw_cookies[:200]}")
-            # Đếm số object
-            count = raw_cookies.count("[object Object]")
-            return {
-                "status": "error", 
-                "message": "Automation service needs to send JSON.stringify(cookies), not cookies.toString()",
-                "note": "Fix automation: use JSON.stringify(cookiesArray) instead of cookiesArray.toString()",
-                "received_objects_count": count,
-                "raw_sample": raw_cookies[:200]
-            }
-        else:
-            # Parse JSON string
-            cookies_list = json.loads(raw_cookies)
-            print(f"[START] Parsed {len(cookies_list)} cookies successfully")
-    except json.JSONDecodeError as e:
-        print(f"[ERROR] Failed to parse cookies JSON: {e}")
-        print(f"[ERROR] Raw cookies: {raw_cookies[:500]}")
-        return {
-            "status": "error", 
-            "message": f"Invalid JSON: {str(e)}", 
-            "raw_sample": raw_cookies[:200]
-        }
-
-    return {"status": "done", "cookies": cookies_list, "count": len(cookies_list)}
+        cookies_list = json.loads(raw_cookies) if raw_cookies.strip() else []
+        return cookies_list
+    except json.JSONDecodeError:
+        return []
 
 
 @app.post(ROUTE_CALLBACK)
 async def callback(request: Request):
     """
-    Nhận raw JSON body từ automation service
+    Nhận raw JSON body: {"cookies": [...]}
     """
-    # Đọc raw body
     body = await request.body()
     body_str = body.decode('utf-8')
     
-    print(f"[CALLBACK] ========== START ==========")
-    print(f"[CALLBACK] Raw body type: {type(body)}")
-    print(f"[CALLBACK] Raw body length: {len(body_str)}")
-    print(f"[CALLBACK] Raw body content: {body_str[:500]}")
-    print(f"[CALLBACK] ========== END ==========")
+    try:
+        data = json.loads(body_str)
+        cookies = data.get("cookies", [])
+        cookies_str = json.dumps(cookies)
+    except:
+        cookies_str = "[]"
     
     if not pending_requests:
-        print("[WARNING] Callback received but no pending request")
         return {"status": "no pending request"}
 
     future = pending_requests.pop(0)
     if not future.done():
-        future.set_result(body_str)
-        print(f"[CALLBACK] ✓ Set result to future")
+        future.set_result(cookies_str)
 
     return {"status": "ok"}
 
