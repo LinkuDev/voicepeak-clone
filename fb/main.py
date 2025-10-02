@@ -1,50 +1,38 @@
 from fastapi import FastAPI, Form
-from pydantic import BaseModel
 import asyncio
+import httpx
 import json
-import requests
-from typing import Any, Dict
+from typing import Dict, Any
 
-# -----------------------------
-# Define routes (by variables)
-# -----------------------------
 ROUTE_START_TASK = "/start"
 ROUTE_CALLBACK   = "/callback"
 
-# -----------------------------
-# App setup
-# -----------------------------
 app = FastAPI(title="FB Cookies Service")
 
-# -----------------------------
-# Pending requests storage
-# -----------------------------
-# mỗi request GET sẽ tạo 1 Future, callback set result vào Future
+# FIFO queue cho pending GET requests
 pending_requests = []
 
 # -----------------------------
-# Pydantic model for callback
-# -----------------------------
-class CallbackData(BaseModel):
-    cookies: Dict[str, Any]  # automation service trả JSON cookies
-
-# -----------------------------
-# GET /start-task
+# GET /start
 # -----------------------------
 @app.get(ROUTE_START_TASK)
 async def start_task():
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     future = loop.create_future()
     pending_requests.append(future)
 
-    # requests.post("http://automation-service/start")
-    print("[START] Waiting for automation callback...")
+    # --- Gọi automation service async ---
+    async with httpx.AsyncClient() as client:
+        resp = await client.get("https://api.locab.pro/partner/schedule/execute/be9e308b843dd9245b4a24413c0778de")
+        result = resp.json()
+        print(f"[START] Automation response: {result}, waiting for callback...")
 
     try:
         # đợi callback max 60s
         cookies = await asyncio.wait_for(future, timeout=60)
     except asyncio.TimeoutError:
-        pending_requests.remove(future)
+        if future in pending_requests:
+            pending_requests.remove(future)
         return {"status": "timeout"}
 
     return {"status": "done", "cookies": cookies}
@@ -55,22 +43,23 @@ async def start_task():
 @app.post(ROUTE_CALLBACK)
 async def callback(cookies: str = Form(...)):
     """
-    cookies: JSON string gửi từ form data, ví dụ:
-    '{"c_user":"123","xs":"abcd"}'
+    cookies: JSON string từ form data, ví dụ '{"c_user":"123","xs":"abcd"}'
     """
     try:
         cookies_dict: Dict[str, Any] = json.loads(cookies)
     except json.JSONDecodeError:
+        print(f"[ERROR] Invalid JSON received: {cookies}")
         return {"status": "error", "message": "Invalid JSON in cookies"}
 
     if not pending_requests:
+        print("[WARNING] Callback received but no pending request")
         return {"status": "no pending request"}
 
-    # Lấy Future đầu tiên trong queue (FIFO)
+    # FIFO: lấy Future đầu tiên
     future = pending_requests.pop(0)
     if not future.done():
         future.set_result(cookies_dict)
-        print("[CALLBACK] Callback received from form data, notified first GET request")
+        print(f"[CALLBACK] Received cookies: {cookies_dict}")
 
     return {"status": "ok"}
 
